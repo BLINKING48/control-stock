@@ -3,82 +3,162 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gestión de Stock</title>
+  <title>Almacén Indirectos WRA</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      margin: 40px;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #111;
+      color: #eee;
+      margin: 20px;
     }
 
-    h1 {
-      color: #333;
+    h1, h2 {
+      text-align: center;
+      margin-bottom: 10px;
+      color: #00ffcc;
+    }
+
+    .seccion-titulo {
+      background-color: #222;
+      padding: 20px;
+      margin: 10px 0;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 24px;
+      box-shadow: 0 0 10px #00ffcc;
+    }
+
+    .formulario-container, .busqueda-container, .tabla-container, .grafica-container, .footer-container {
+      background-color: #1a1a1a;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 12px #00ffcc55;
+    }
+
+    form, .busqueda-container, .footer-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
     }
 
     input, button {
-      padding: 10px;
-      margin: 5px;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
     }
 
-    .alerta {
-      color: red;
+    input {
+      background-color: #333;
+      color: #eee;
+      border: 1px solid #555;
+    }
+
+    button {
+      background-color: #00ffcc;
+      color: #000;
+      cursor: pointer;
       font-weight: bold;
     }
 
+    button:hover {
+      background-color: #00bfa5;
+    }
+
+    .explicacion {
+      background-color: #a0ffc4;
+      color: #000;
+      padding: 8px 12px;
+      margin: 5px;
+      border-radius: 6px;
+      font-size: 14px;
+      display: inline-block;
+    }
+
     table {
-      margin-top: 20px;
       width: 100%;
       border-collapse: collapse;
+      color: #fff;
+      margin-top: 10px;
     }
 
     th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
+      border: 1px solid #444;
+      padding: 10px;
       text-align: center;
     }
 
-    button.borrar {
-      background-color: red;
+    .alerta {
+      color: #ff4d4d;
+      font-weight: bold;
+    }
+
+    canvas {
+      background-color: #fff;
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .borrar {
+      background-color: #ff4d4d;
       color: white;
-      border: none;
-      padding: 6px 12px;
-      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <h1>Control de Stock</h1>
+  <div class="seccion-titulo">ALMACEN INDIRECTOS WRA</div>
+  <div class="seccion-titulo">INVENTARIO</div>
 
-  <form id="formulario">
-    <input type="text" id="parte" placeholder="Número de Parte" required />
-    <input type="number" id="cantidad" placeholder="Cantidad Actual" required />
-    <input type="number" id="minimo" placeholder="Stock Mínimo" required />
-    <input type="number" id="maximo" placeholder="Stock Máximo" required />
-    <button type="submit">Guardar</button>
-    <button type="button" id="btnActualizar">Actualizar</button>
-  </form>
+  <div class="formulario-container">
+    <span class="explicacion">ESTE ES PARA SUBIR NUEVOS NUMEROS DE PARTE</span><br />
+    <form id="formulario">
+      <input type="text" id="parte" placeholder="Número de Parte" required />
+      <input type="number" id="cantidad" placeholder="Cantidad Actual" required />
+      <input type="number" id="minimo" placeholder="Stock Mínimo" required />
+      <input type="number" id="maximo" placeholder="Stock Máximo" required />
+      <button type="submit">Guardar</button>
+      <button type="button" id="btnActualizar">Actualizar</button>
+    </form>
+    <span class="explicacion">ESTE ES PARA ACTUALIZAR SU CANTIDAD DIARIA</span>
+  </div>
 
-  <input type="text" id="busqueda" placeholder="Buscar Número de Parte" />
-  <button type="button" id="btnBuscar">Buscar</button>
+  <div class="busqueda-container">
+    <input type="text" id="busqueda" placeholder="Buscar Número de Parte" />
+    <button type="button" id="btnBuscar">Buscar</button>
+  </div>
+  <div id="alertas" class="explicacion"></div>
 
-  <div id="alertas"></div>
+  <div class="tabla-container">
+    <table id="tablaStock">
+      <thead>
+        <tr>
+          <th>Número de Parte</th>
+          <th>Cantidad</th>
+          <th>Mínimo</th>
+          <th>Máximo</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-  <table id="tablaStock">
-    <thead>
-      <tr>
-        <th>Número de Parte</th>
-        <th>Cantidad</th>
-        <th>Mínimo</th>
-        <th>Máximo</th>
-        <th>Estado</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div class="grafica-container">
+    <h2>Gráfica de Inventario</h2>
+    <canvas id="graficoStock" width="600" height="300"></canvas>
+  </div>
 
-  <h2>Gráfica de Inventario</h2>
-  <canvas id="graficoStock" width="600" height="300"></canvas>
+  <div class="footer-container">
+    <span class="explicacion">ESTE ES PARA BUSCAR POR FECHA TODO LO QUE SE ACTUALIZÓ</span>
+    <input type="date" />
+    <button>Buscar</button>
+    <span class="explicacion">AQUI ME MUESTRE TODO LO QUE SE SUBIÓ ESE DÍA DE NÚMEROS Y GRÁFICOS</span>
+    <button>EXPORTAR A SHEET</button>
+  </div>
 
   <script>
     const form = document.getElementById('formulario');
@@ -97,13 +177,24 @@
         labels: [],
         datasets: [{
           label: 'Cantidad',
-          backgroundColor: 'steelblue',
+          backgroundColor: '#00ffcc',
+          borderColor: '#00bfa5',
+          borderWidth: 1,
           data: []
         }]
       },
       options: {
+        plugins: {
+          legend: { labels: { color: '#000' } }
+        },
         scales: {
-          y: { beginAtZero: true }
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#000' }
+          },
+          x: {
+            ticks: { color: '#000' }
+          }
         }
       }
     });
@@ -123,7 +214,7 @@
 
       const estado = cantidad < minimo ? '⚠️ Stock bajo' : '✅ OK';
       if (cantidad < minimo) {
-        alertasDiv.innerHTML += `<p class="alerta alerta-${parte}">Alerta: El stock de <strong>${parte}</strong> está por debajo del mínimo (${cantidad} < ${minimo})</p>`;
+        alertasDiv.innerHTML = `<p class="alerta alerta-${parte}">Alerta: El stock de <strong>${parte}</strong> está por debajo del mínimo (${cantidad} < ${minimo})</p>`;
       }
 
       datosMaterial.push({ parte, cantidad, minimo, maximo, estado });
@@ -147,12 +238,11 @@
       const estado = cantidad < minimo ? '⚠️ Stock bajo' : '✅ OK';
       datosMaterial[index] = { parte, cantidad, minimo, maximo, estado };
 
-      // Eliminar alerta anterior
       const alertaExistente = document.querySelector(`.alerta-${parte}`);
       if (alertaExistente) alertaExistente.remove();
 
       if (cantidad < minimo) {
-        alertasDiv.innerHTML += `<p class="alerta alerta-${parte}">Alerta: El stock de <strong>${parte}</strong> está por debajo del mínimo (${cantidad} < ${minimo})</p>`;
+        alertasDiv.innerHTML = `<p class="alerta alerta-${parte}">Alerta: El stock de <strong>${parte}</strong> está por debajo del mínimo (${cantidad} < ${minimo})</p>`;
       }
 
       actualizarTabla();
@@ -212,7 +302,6 @@
 
       datosMaterial = datosMaterial.filter(item => item.parte !== parte);
 
-      // Eliminar alerta específica si existe
       const alerta = document.querySelector(`.alerta-${parte}`);
       if (alerta) alerta.remove();
 
@@ -222,3 +311,4 @@
   </script>
 </body>
 </html>
+
