@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -16,13 +15,35 @@
       font-family: 'Segoe UI', sans-serif;
       background-color: #111;
       color: #eee;
-      margin: 20px;
+      margin: 0;
+      padding: 20px;
+      overflow-x: hidden;
+      position: relative;
     }
 
-    h1, h2 {
-      text-align: center;
-      margin-bottom: 10px;
-      color: var(--azul-principal);
+    /* Fondo de cajas animadas */
+    .caja-fondo {
+      position: fixed;
+      width: 20px;
+      height: 20px;
+      background-color: #2643A4;
+      opacity: 0.1;
+      border-radius: 4px;
+      animation: flotar 20s linear infinite;
+    }
+
+    @keyframes flotar {
+      0% {
+        transform: translateY(100vh) rotate(0deg);
+        opacity: 0.1;
+      }
+      50% {
+        opacity: 0.3;
+      }
+      100% {
+        transform: translateY(-10vh) rotate(360deg);
+        opacity: 0.05;
+      }
     }
 
     .seccion-titulo {
@@ -33,6 +54,8 @@
       text-align: center;
       font-size: 24px;
       box-shadow: 0 0 10px var(--azul-principal);
+      position: relative;
+      z-index: 2;
     }
 
     .formulario-container, .busqueda-container, .tabla-container, .grafica-container, .footer-container {
@@ -41,6 +64,8 @@
       border-radius: 12px;
       margin-bottom: 20px;
       box-shadow: 0 0 12px rgba(38, 67, 164, 0.5);
+      position: relative;
+      z-index: 2;
     }
 
     form, .busqueda-container, .footer-container {
@@ -105,6 +130,18 @@
   </style>
 </head>
 <body>
+  <!-- Cajas flotantes de fondo -->
+  <script>
+    for (let i = 0; i < 40; i++) {
+      const box = document.createElement("div");
+      box.className = "caja-fondo";
+      box.style.left = Math.random() * 100 + "vw";
+      box.style.animationDuration = 10 + Math.random() * 30 + "s";
+      box.style.width = box.style.height = 10 + Math.random() * 30 + "px";
+      document.body.appendChild(box);
+    }
+  </script>
+
   <div class="seccion-titulo">ALMACÉN INDIRECTOS WRA</div>
   <div class="seccion-titulo">INVENTARIO</div>
 
@@ -123,7 +160,8 @@
     <input type="text" id="busqueda" placeholder="Buscar Número de Parte" />
     <button type="button" id="btnBuscar">Buscar</button>
   </div>
-  <div id="alertas" class="explicacion"></div>
+
+  <div id="alertas"></div>
 
   <div class="tabla-container">
     <table id="tablaStock">
@@ -152,9 +190,154 @@
     <button>EXPORTAR A SHEET</button>
   </div>
 
-  <!-- SCRIPT ORIGINAL SE MANTIENE IGUAL -->
   <script>
-    // ... Tu script JS completo permanece sin cambios ...
+    const form = document.getElementById('formulario');
+    const tabla = document.querySelector('#tablaStock tbody');
+    const alertasDiv = document.getElementById('alertas');
+    const graficoCanvas = document.getElementById('graficoStock').getContext('2d');
+    const btnActualizar = document.getElementById('btnActualizar');
+    const inputBusqueda = document.getElementById('busqueda');
+    const btnBuscar = document.getElementById('btnBuscar');
+
+    let datosMaterial = [];
+
+    const chart = new Chart(graficoCanvas, {
+      type: 'bar',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Cantidad',
+          backgroundColor: '#2643A4',
+          borderColor: '#1b2f73',
+          borderWidth: 1,
+          data: []
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { labels: { color: '#000' } }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#000' }
+          },
+          x: {
+            ticks: { color: '#000' }
+          }
+        }
+      }
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const parte = document.getElementById('parte').value;
+      const cantidad = parseInt(document.getElementById('cantidad').value);
+      const minimo = parseInt(document.getElementById('minimo').value);
+      const maximo = parseInt(document.getElementById('maximo').value);
+
+      if (datosMaterial.find(item => item.parte === parte)) {
+        alert("Ya existe ese número de parte. Usa 'Actualizar' para cambiar los datos.");
+        return;
+      }
+
+      const estado = cantidad < minimo ? '⚠️ Stock bajo' : '✅ OK';
+      if (cantidad < minimo) {
+        alertasDiv.innerHTML = `<p class="alerta alerta-${parte}">Alerta: El stock de <strong>${parte}</strong> está por debajo del mínimo (${cantidad} < ${minimo})</p>`;
+      }
+
+      datosMaterial.push({ parte, cantidad, minimo, maximo, estado });
+      agregarFilaATabla(parte, cantidad, minimo, maximo, estado);
+      actualizarGrafico();
+      form.reset();
+    });
+
+    btnActualizar.addEventListener('click', () => {
+      const parte = document.getElementById('parte').value;
+      const cantidad = parseInt(document.getElementById('cantidad').value);
+      const minimo = parseInt(document.getElementById('minimo').value);
+      const maximo = parseInt(document.getElementById('maximo').value);
+
+      const index = datosMaterial.findIndex(item => item.parte === parte);
+      if (index === -1) {
+        alert("Número de parte no encontrado.");
+        return;
+      }
+
+      const estado = cantidad < minimo ? '⚠️ Stock bajo' : '✅ OK';
+      datosMaterial[index] = { parte, cantidad, minimo, maximo, estado };
+
+      const alertaExistente = document.querySelector(`.alerta-${parte}`);
+      if (alertaExistente) alertaExistente.remove();
+
+      if (cantidad < minimo) {
+        alertasDiv.innerHTML = `<p class="alerta alerta-${parte}">Alerta: El stock de <strong>${parte}</strong> está por debajo del mínimo (${cantidad} < ${minimo})</p>`;
+      }
+
+      actualizarTabla();
+      actualizarGrafico();
+      form.reset();
+    });
+
+    btnBuscar.addEventListener('click', () => {
+      const filtro = inputBusqueda.value.trim();
+      const resultado = datosMaterial.find(item => item.parte === filtro);
+
+      if (!resultado) {
+        alert("Número de parte no encontrado.");
+        return;
+      }
+
+      alertasDiv.innerHTML = resultado.estado.includes('⚠️') ?
+        `<p class="alerta alerta-${resultado.parte}">Alerta: El stock de <strong>${resultado.parte}</strong> está por debajo del mínimo (${resultado.cantidad} < ${resultado.minimo})</p>` :
+        `<p><strong>${resultado.parte}</strong> tiene stock suficiente: ${resultado.cantidad}</p>`;
+
+      chart.data.labels = [resultado.parte];
+      chart.data.datasets[0].data = [resultado.cantidad];
+      chart.update();
+    });
+
+    function agregarFilaATabla(parte, cantidad, minimo, maximo, estado) {
+      const fila = tabla.insertRow();
+      fila.insertCell(0).textContent = parte;
+      fila.insertCell(1).textContent = cantidad;
+      fila.insertCell(2).textContent = minimo;
+      fila.insertCell(3).textContent = maximo;
+      fila.insertCell(4).textContent = estado;
+
+      const celdaBorrar = fila.insertCell(5);
+      const btnBorrar = document.createElement('button');
+      btnBorrar.textContent = 'Borrar';
+      btnBorrar.className = 'borrar';
+      btnBorrar.onclick = () => borrarParte(parte);
+      celdaBorrar.appendChild(btnBorrar);
+    }
+
+    function actualizarTabla() {
+      tabla.innerHTML = "";
+      datosMaterial.forEach(({ parte, cantidad, minimo, maximo, estado }) => {
+        agregarFilaATabla(parte, cantidad, minimo, maximo, estado);
+      });
+    }
+
+    function actualizarGrafico() {
+      chart.data.labels = datosMaterial.map(item => item.parte);
+      chart.data.datasets[0].data = datosMaterial.map(item => item.cantidad);
+      chart.update();
+    }
+
+    function borrarParte(parte) {
+      if (!confirm(`¿Estás seguro de que quieres borrar el número de parte "${parte}"?`)) return;
+
+      datosMaterial = datosMaterial.filter(item => item.parte !== parte);
+
+      const alerta = document.querySelector(`.alerta-${parte}`);
+      if (alerta) alerta.remove();
+
+      actualizarTabla();
+      actualizarGrafico();
+    }
   </script>
 </body>
 </html>
