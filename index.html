@@ -36,6 +36,14 @@
       padding: 8px;
       text-align: center;
     }
+
+    button.borrar {
+      background-color: red;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -63,6 +71,7 @@
         <th>Mínimo</th>
         <th>Máximo</th>
         <th>Estado</th>
+        <th>Acciones</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -107,7 +116,6 @@
       const minimo = parseInt(document.getElementById('minimo').value);
       const maximo = parseInt(document.getElementById('maximo').value);
 
-      // Verifica si ya existe
       if (datosMaterial.find(item => item.parte === parte)) {
         alert("Ya existe ese número de parte. Usa 'Actualizar' para cambiar los datos.");
         return;
@@ -115,7 +123,7 @@
 
       const estado = cantidad < minimo ? '⚠️ Stock bajo' : '✅ OK';
       if (cantidad < minimo) {
-        alertasDiv.innerHTML += `<p class="alerta">Alerta: El stock de <strong>${parte}</strong> está por debajo del mínimo (${cantidad} < ${minimo})</p>`;
+        alertasDiv.innerHTML += `<p class="alerta alerta-${parte}">Alerta: El stock de <strong>${parte}</strong> está por debajo del mínimo (${cantidad} < ${minimo})</p>`;
       }
 
       datosMaterial.push({ parte, cantidad, minimo, maximo, estado });
@@ -139,8 +147,12 @@
       const estado = cantidad < minimo ? '⚠️ Stock bajo' : '✅ OK';
       datosMaterial[index] = { parte, cantidad, minimo, maximo, estado };
 
+      // Eliminar alerta anterior
+      const alertaExistente = document.querySelector(`.alerta-${parte}`);
+      if (alertaExistente) alertaExistente.remove();
+
       if (cantidad < minimo) {
-        alertasDiv.innerHTML += `<p class="alerta">Alerta: El stock de <strong>${parte}</strong> está por debajo del mínimo (${cantidad} < ${minimo})</p>`;
+        alertasDiv.innerHTML += `<p class="alerta alerta-${parte}">Alerta: El stock de <strong>${parte}</strong> está por debajo del mínimo (${cantidad} < ${minimo})</p>`;
       }
 
       actualizarTabla();
@@ -158,7 +170,7 @@
       }
 
       alertasDiv.innerHTML = resultado.estado.includes('⚠️') ?
-        `<p class="alerta">Alerta: El stock de <strong>${resultado.parte}</strong> está por debajo del mínimo (${resultado.cantidad} < ${resultado.minimo})</p>` :
+        `<p class="alerta alerta-${resultado.parte}">Alerta: El stock de <strong>${resultado.parte}</strong> está por debajo del mínimo (${resultado.cantidad} < ${resultado.minimo})</p>` :
         `<p><strong>${resultado.parte}</strong> tiene stock suficiente: ${resultado.cantidad}</p>`;
 
       chart.data.labels = [resultado.parte];
@@ -173,6 +185,13 @@
       fila.insertCell(2).textContent = minimo;
       fila.insertCell(3).textContent = maximo;
       fila.insertCell(4).textContent = estado;
+
+      const celdaBorrar = fila.insertCell(5);
+      const btnBorrar = document.createElement('button');
+      btnBorrar.textContent = 'Borrar';
+      btnBorrar.className = 'borrar';
+      btnBorrar.onclick = () => borrarParte(parte);
+      celdaBorrar.appendChild(btnBorrar);
     }
 
     function actualizarTabla() {
@@ -186,6 +205,19 @@
       chart.data.labels = datosMaterial.map(item => item.parte);
       chart.data.datasets[0].data = datosMaterial.map(item => item.cantidad);
       chart.update();
+    }
+
+    function borrarParte(parte) {
+      if (!confirm(`¿Estás seguro de que quieres borrar el número de parte "${parte}"?`)) return;
+
+      datosMaterial = datosMaterial.filter(item => item.parte !== parte);
+
+      // Eliminar alerta específica si existe
+      const alerta = document.querySelector(`.alerta-${parte}`);
+      if (alerta) alerta.remove();
+
+      actualizarTabla();
+      actualizarGrafico();
     }
   </script>
 </body>
