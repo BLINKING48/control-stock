@@ -46,8 +46,12 @@
     <input type="number" id="cantidad" placeholder="Cantidad Actual" required />
     <input type="number" id="minimo" placeholder="Stock Mínimo" required />
     <input type="number" id="maximo" placeholder="Stock Máximo" required />
-    <button type="submit">Agregar</button>
+    <button type="submit">Guardar</button>
+    <button type="button" id="btnActualizar">Actualizar</button>
   </form>
+
+  <input type="text" id="busqueda" placeholder="Buscar Número de Parte" />
+  <button type="button" id="btnBuscar">Buscar</button>
 
   <div id="alertas"></div>
 
@@ -72,6 +76,9 @@
     const tabla = document.querySelector('#tablaStock tbody');
     const alertasDiv = document.getElementById('alertas');
     const graficoCanvas = document.getElementById('graficoStock').getContext('2d');
+    const btnActualizar = document.getElementById('btnActualizar');
+    const inputBusqueda = document.getElementById('busqueda');
+    const btnBuscar = document.getElementById('btnBuscar');
 
     let datosMaterial = [];
 
@@ -87,9 +94,7 @@
       },
       options: {
         scales: {
-          y: {
-            beginAtZero: true
-          }
+          y: { beginAtZero: true }
         }
       }
     });
@@ -102,31 +107,80 @@
       const minimo = parseInt(document.getElementById('minimo').value);
       const maximo = parseInt(document.getElementById('maximo').value);
 
-      // Añadir fila a la tabla
+      // Verifica si ya existe
+      if (datosMaterial.find(item => item.parte === parte)) {
+        alert("Ya existe ese número de parte. Usa 'Actualizar' para cambiar los datos.");
+        return;
+      }
+
+      const estado = cantidad < minimo ? '⚠️ Stock bajo' : '✅ OK';
+      if (cantidad < minimo) {
+        alertasDiv.innerHTML += `<p class="alerta">Alerta: El stock de <strong>${parte}</strong> está por debajo del mínimo (${cantidad} < ${minimo})</p>`;
+      }
+
+      datosMaterial.push({ parte, cantidad, minimo, maximo, estado });
+      agregarFilaATabla(parte, cantidad, minimo, maximo, estado);
+      actualizarGrafico();
+      form.reset();
+    });
+
+    btnActualizar.addEventListener('click', () => {
+      const parte = document.getElementById('parte').value;
+      const cantidad = parseInt(document.getElementById('cantidad').value);
+      const minimo = parseInt(document.getElementById('minimo').value);
+      const maximo = parseInt(document.getElementById('maximo').value);
+
+      const index = datosMaterial.findIndex(item => item.parte === parte);
+      if (index === -1) {
+        alert("Número de parte no encontrado.");
+        return;
+      }
+
+      const estado = cantidad < minimo ? '⚠️ Stock bajo' : '✅ OK';
+      datosMaterial[index] = { parte, cantidad, minimo, maximo, estado };
+
+      if (cantidad < minimo) {
+        alertasDiv.innerHTML += `<p class="alerta">Alerta: El stock de <strong>${parte}</strong> está por debajo del mínimo (${cantidad} < ${minimo})</p>`;
+      }
+
+      actualizarTabla();
+      actualizarGrafico();
+      form.reset();
+    });
+
+    btnBuscar.addEventListener('click', () => {
+      const filtro = inputBusqueda.value.trim();
+      const resultado = datosMaterial.find(item => item.parte === filtro);
+
+      if (!resultado) {
+        alert("Número de parte no encontrado.");
+        return;
+      }
+
+      alertasDiv.innerHTML = resultado.estado.includes('⚠️') ?
+        `<p class="alerta">Alerta: El stock de <strong>${resultado.parte}</strong> está por debajo del mínimo (${resultado.cantidad} < ${resultado.minimo})</p>` :
+        `<p><strong>${resultado.parte}</strong> tiene stock suficiente: ${resultado.cantidad}</p>`;
+
+      chart.data.labels = [resultado.parte];
+      chart.data.datasets[0].data = [resultado.cantidad];
+      chart.update();
+    });
+
+    function agregarFilaATabla(parte, cantidad, minimo, maximo, estado) {
       const fila = tabla.insertRow();
       fila.insertCell(0).textContent = parte;
       fila.insertCell(1).textContent = cantidad;
       fila.insertCell(2).textContent = minimo;
       fila.insertCell(3).textContent = maximo;
-
-      // Verificación de stock
-      let estado = '';
-      if (cantidad < minimo) {
-        estado = '⚠️ Stock bajo';
-        alertasDiv.innerHTML += `<p class="alerta">Alerta: El stock de <strong>${parte}</strong> está por debajo del mínimo (${cantidad} < ${minimo})</p>`;
-      } else {
-        estado = '✅ OK';
-      }
-
       fila.insertCell(4).textContent = estado;
+    }
 
-      // Actualizar datos para gráfico
-      datosMaterial.push({ parte, cantidad });
-      actualizarGrafico();
-
-      // Limpiar formulario
-      form.reset();
-    });
+    function actualizarTabla() {
+      tabla.innerHTML = "";
+      datosMaterial.forEach(({ parte, cantidad, minimo, maximo, estado }) => {
+        agregarFilaATabla(parte, cantidad, minimo, maximo, estado);
+      });
+    }
 
     function actualizarGrafico() {
       chart.data.labels = datosMaterial.map(item => item.parte);
