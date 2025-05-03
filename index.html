@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gestión de Stock</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 5px;
+    }
+
+    .alerta {
+      color: red;
+      font-weight: bold;
+    }
+
+    table {
+      margin-top: 20px;
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Control de Stock</h1>
+
+  <form id="formulario">
+    <input type="text" id="parte" placeholder="Número de Parte" required />
+    <input type="number" id="cantidad" placeholder="Cantidad Actual" required />
+    <input type="number" id="minimo" placeholder="Stock Mínimo" required />
+    <input type="number" id="maximo" placeholder="Stock Máximo" required />
+    <button type="submit">Agregar</button>
+  </form>
+
+  <div id="alertas"></div>
+
+  <table id="tablaStock">
+    <thead>
+      <tr>
+        <th>Número de Parte</th>
+        <th>Cantidad</th>
+        <th>Mínimo</th>
+        <th>Máximo</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Gráfica de Inventario</h2>
+  <canvas id="graficoStock" width="600" height="300"></canvas>
+
+  <script>
+    const form = document.getElementById('formulario');
+    const tabla = document.querySelector('#tablaStock tbody');
+    const alertasDiv = document.getElementById('alertas');
+    const graficoCanvas = document.getElementById('graficoStock').getContext('2d');
+
+    let datosMaterial = [];
+
+    const chart = new Chart(graficoCanvas, {
+      type: 'bar',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Cantidad',
+          backgroundColor: 'steelblue',
+          data: []
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const parte = document.getElementById('parte').value;
+      const cantidad = parseInt(document.getElementById('cantidad').value);
+      const minimo = parseInt(document.getElementById('minimo').value);
+      const maximo = parseInt(document.getElementById('maximo').value);
+
+      // Añadir fila a la tabla
+      const fila = tabla.insertRow();
+      fila.insertCell(0).textContent = parte;
+      fila.insertCell(1).textContent = cantidad;
+      fila.insertCell(2).textContent = minimo;
+      fila.insertCell(3).textContent = maximo;
+
+      // Verificación de stock
+      let estado = '';
+      if (cantidad < minimo) {
+        estado = '⚠️ Stock bajo';
+        alertasDiv.innerHTML += `<p class="alerta">Alerta: El stock de <strong>${parte}</strong> está por debajo del mínimo (${cantidad} < ${minimo})</p>`;
+      } else {
+        estado = '✅ OK';
+      }
+
+      fila.insertCell(4).textContent = estado;
+
+      // Actualizar datos para gráfico
+      datosMaterial.push({ parte, cantidad });
+      actualizarGrafico();
+
+      // Limpiar formulario
+      form.reset();
+    });
+
+    function actualizarGrafico() {
+      chart.data.labels = datosMaterial.map(item => item.parte);
+      chart.data.datasets[0].data = datosMaterial.map(item => item.cantidad);
+      chart.update();
+    }
+  </script>
+</body>
+</html>
